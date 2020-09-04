@@ -67,7 +67,7 @@ function deploy-vm {
     $rg = New-AzResourceGroup -Name ($pfxselect+$vm+"_RG") -Location $loc.DisplayName
     Write-Host -ForegroundColor Green "New Resource Group deployed"
     $pword = Create-Password
-    $pword = ConvertTo-SecureString $pword -AsPlainText -Force
+    $pword = ConvertTo-SecureString ($pword + '!') -AsPlainText -Force
     Set-AzKeyVaultSecret -VaultName $kv -Name ($vm+"-admin") -SecretValue $pword -ContentType "Windows Administrator Account" -NotBefore ((Get-Date).ToUniversalTime())
     Write-Host -ForegroundColor Green "Administrator Credentials stored in Key Vaults"
     $user = $vm+"admin"
@@ -83,7 +83,7 @@ function deploy-vm {
     $vmconfig = Set-AzVMBootDiagnostic -VM $vmconfig -Enable -ResourceGroupName $str.ResourceGroupName -StorageAccountName $str.StorageAccountName
     $newvm = New-AzVM -ResourceGroupName $rg.ResourceGroupName -Location $loc.DisplayName -VM $vmconfig
     Write-Host -ForegroundColor Green "Virtual Machine has been deployed"
-    Invoke-AzVMRunCommand -ResourceGroupName AEONGMS_RG -VMName AEONGMS -CommandId 'RunPowerShellScript' -ScriptPath $env:TEMP/new.ps1
+    Invoke-AzVMRunCommand -ResourceGroupName $rg.ResourceGroupName -VMName ($pfxselect+$vm) -CommandId 'RunPowerShellScript' -ScriptPath $env:TEMP/new.ps1
 
 }
 
