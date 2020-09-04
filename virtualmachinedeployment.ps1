@@ -1,3 +1,15 @@
+<#  
+.SYNOPSIS  
+    Automated deployment of virtual machines to Azure Subscription.
+
+.DESCRIPTION
+    Signs into Azure Subscription, collates existing information; VPN, NSG, KV etc. takes user input from WPF Form and deploys virtual machines.
+
+.NOTES  
+    Author     : Mahir Ajmal
+    Version    : 0.1
+#>
+
 function Create-Password {
     $password = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".ToCharArray()
     ($password | Get-Random -Count 11) -Join ''
@@ -66,11 +78,13 @@ function deploy-vm {
     $nic = New-AzNetworkInterface -Name $nic.Name -ResourceGroupName $rg.ResourceGroupName -Location $loc.DisplayName -IpConfiguration $nic -NetworkSecurityGroupId $nsec.Id
     Write-Host -ForegroundColor Green "Network Interface Card has been deployed"
     $vmconfig = New-AzVMConfig -VMName ($pfxselect+$vm) -VMSize $size
-    $vmconfig = Set-AzVMOperatingSystem -Windows -ComputerName $vmconfig.Name -Credential $cred -ProvisionVMAgent -VM $vmconfig -TimeZone 'GMT Standard Time' | Set-AzVMSourceImage -PublisherName 'MicrosoftWindowsServer' -Offer 'WindowsServer' -Skus '2019-Datacenter' -Version 'Latest' | Add-AzVMNetworkInterface -Id $nic.Id
+    $vmconfig = Set-AzVMOperatingSystem -Windows -ComputerName $vmconfig.Name -Credential $cred -ProvisionVMAgent -VM $vmconfig -TimeZone 'GMT Standard Time' | Set-AzVMSourceImage -PublisherName 'MicrosoftWindowsServer' -Offer 'WindowsServer' -Skus '2016-Datacenter' -Version 'Latest' | Add-AzVMNetworkInterface -Id $nic.Id
     $vmconfig = Set-AzVMOSDisk -VM $vmconfig -Name $vmconfig.Name -VhdUri ($str.PrimaryEndpoints.Blob.ToString()+"vhds/"+($pfxselect+$vm+"OSDisk")+".vhd") -CreateOption FromImage
     $vmconfig = Set-AzVMBootDiagnostic -VM $vmconfig -Enable -ResourceGroupName $str.ResourceGroupName -StorageAccountName $str.StorageAccountName
     $newvm = New-AzVM -ResourceGroupName $rg.ResourceGroupName -Location $loc.DisplayName -VM $vmconfig
     Write-Host -ForegroundColor Green "Virtual Machine has been deployed"
+    Invoke-AzVMRunCommand -ResourceGroupName AEONGMS_RG -VMName AEONGMS -CommandId 'RunPowerShellScript' -ScriptPath $env:TEMP/new.ps1
+
 }
 
 # Function takes XAML string and converts to a PowerShell [Windows.window] Object
@@ -315,6 +329,6 @@ $vm = "MS"
 $size = "Standard_B1ms"
 deploy-vm -vm $vm -size $size -loc $azureLocation -vn $vnselect -nsec $nsgselect -kv $kvselect.VaultName -str $stract
 
-# Disconnect-AzAccount
-# Remove-Item -Path $env:TEMP/new.ps1
-Invoke-AzVMRunCommand -ResourceGroupName AEONGMS_RG -VMName AEONGMS -CommandId 'RunPowerShellScript' -ScriptPath $env:TEMP/new.ps1
+Remove-Item -Path $env:TEMP/new.ps1
+
+Disconnect-AzAccount
