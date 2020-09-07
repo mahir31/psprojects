@@ -23,6 +23,10 @@ function next-as {
     [hashtable]$return = @{}
     $y=0
     $schck = $true
+    if ($vm -match "VW") {
+        $vm = $vm.SubString(1)
+        $vm = $vm -replace "vw.*", "vw"
+    }
     Do {
         if ($vn.Subnets[$y].Name -ne $vm+"_subnet") {
             $y ++
@@ -83,7 +87,6 @@ function deploy-vm {
     $vmconfig = Set-AzVMBootDiagnostic -VM $vmconfig -Enable -ResourceGroupName $str.ResourceGroupName -StorageAccountName $str.StorageAccountName
     $newvm = New-AzVM -ResourceGroupName $rg.ResourceGroupName -Location $loc.DisplayName -VM $vmconfig
     Write-Host -ForegroundColor Green "Virtual Machine has been deployed"
-    Invoke-AzVMRunCommand -ResourceGroupName $rg.ResourceGroupName -VMName ($pfxselect+$vm) -CommandId 'RunPowerShellScript' -ScriptPath $env:TEMP/new.ps1
 
 }
 
@@ -253,12 +256,12 @@ do {
         $window.kvselect.Items.Add($k) | Out-Null
     }
     # Declares Array, presents array as string in the Development Virtual Worker dropdown box
-    $d = 1..5
+    $d = 0..5
     foreach ($d in $d) {
         $window.dvwselect.Items.Add([string]$d) | Out-Null
     }
     # Declares Array, presents array as string in the Production Virtual Worker dropdown box
-    $p = 1..10
+    $p = 0..10
     foreach ($p in $p) {
         $window.pvwselect.Items.Add([string]$p) | Out-Null
     }
@@ -323,12 +326,30 @@ do {
     }
 } while ($errorsFound -eq $true)
 
-$stract = New-AzStorageAccount -ResourceGroupName $rglist[0].ResourceGroupName -Name ($pfxselect+"diag").ToLower() -Location $azureLocation.DisplayName -SkuName Standard_LRS
+$vm = @()
 
-$vm = "MS"
+while ($dvwselect -ne 0) {
+    New-Variable -Name ("DVW" + $dvwselect.ToString()) -Value ("DVW" + $dvwselect.ToString())
+    $dvw = Get-Variable -Name ("DVW" + $dvwselect.ToString()) -ValueOnly
+    $vm += $dvw
+    $dvwselect --
+}
+
+while ($pvwselect -ne 0) {
+    New-Variable -Name ("PVW" + $pvwselect.ToString()) -Value ("PVW" + $pvwselect.ToString())
+    $pvw = Get-Variable -Name ("PVW" + $pvwselect.ToString()) -ValueOnly
+    $vm += $pvw
+    $pvwselect --
+}
+
+$stract = New-AzStorageAccount -ResourceGroupName $rglist[0].ResourceGroupName -Name ($pfxselect+"diag").ToLower() -Location $azureLocation.DisplayName -SkuName Standard_LRS
 $size = "Standard_B1ms"
-deploy-vm -vm $vm -size $size -loc $azureLocation -vn $vnselect -nsec $nsgselect -kv $kvselect.VaultName -str $stract
+foreach ($vm in $vm) {
+    deploy-vm -vm $vm -size $size -loc $azureLocation -vn $vnselect -nsec $nsgselect -kv $kvselect.VaultName -str $stract
+}
 
 Remove-Item -Path $env:TEMP/new.ps1
 
 Disconnect-AzAccount
+
+# Invoke-AzVMRunCommand -ResourceGroupName $rg.ResourceGroupName -VMName ($pfxselect+$vm) -CommandId 'RunPowerShellScript' -ScriptPath $env:TEMP/new.ps1
