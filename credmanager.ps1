@@ -1,4 +1,4 @@
-﻿<#  
+<#  
 .SYNOPSIS  
     Automated Solution to adding credentials to Blue Prism Credential Manager.
 
@@ -42,7 +42,7 @@ function Add-Credentials {
     $n=0
     foreach ($s in $secretlist) {
         $workercredential = Retrieve-Credential -secretname $s.Name -vaultname $vaultname
-        $command = '"C:\Program Files\Blue Prism Limited\Blue Prism Automate\AutomateC.exe" /dbconname ' + $dbconname + ' /user operator ' + $connectionpassword + ' /createcredential "Windows Login: ' + $workernames[$n] + '" "virtual.worker" "' + $workercredential + '" /description "' + $workernames
+        $command = '"C:\Program Files\Blue Prism Limited\Blue Prism Automate\AutomateC.exe" /dbconname ' + $dbconname + ' /user operator ' + $connectionpassword + ' /createcredential "Windows Login: ' + $workernames[$n] + '" "virtual.worker" "' + $workercredential + '" /description "' + $workernames[$n]
         $command = cmd.exe /c $command
         Write-Host $command
         $n ++
@@ -79,7 +79,7 @@ foreach ($m in $virtualmachines) {
 }
 
 foreach ($m in $virtualmachines) {
-    if ($m.Name -like "ProdVW*") {
+    if ($m.Name -like "*pvw*") {
         $prodworkernames += $m.Name
         Write-Host "Machine: $($m.Name) queued to be added" -ForegroundColor Green
     }
